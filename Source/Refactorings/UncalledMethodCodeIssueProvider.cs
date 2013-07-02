@@ -34,12 +34,23 @@ namespace Refactorings
 
             var interfaceMembers = symbol.FindImplementedInterfaceMembers(document.Project.Solution, cancellationToken);
 
-            if (interfaceMembers.Any(im => !im.IsDeclaredInSource()))
+            if (interfaceMembers.Any(im => !im.IsDeclaredInSource() || im.IsExternallyVisible()))
+                yield break;
+
+            var implementations = interfaceMembers.SelectMany(im => im.FindImplementations(document.Project.Solution, cancellationToken));
+            if(implementations.Any(impl => impl.IsExternallyVisible()))
+                yield break;
+
+            if (symbol.FindImplementations(document.Project.Solution, cancellationToken).Any(impl => impl.IsExternallyVisible()))
                 yield break;
 
             if (symbol.IsExternallyVisible())
                 yield break;
-            
+
+            if (symbol.OverriddenMethod != null &&
+                (!symbol.OverriddenMethod.IsDeclaredInSource() || symbol.OverriddenMethod.IsExternallyVisible()))
+                yield break;
+
             yield return new CodeIssue(CodeIssueKind.Unnecessary, node.Span,
                 string.Format("{0} is never called.", symbol.Name),
                 new RemoveMethodCodeAction(document, (BaseMethodDeclarationSyntax)node));

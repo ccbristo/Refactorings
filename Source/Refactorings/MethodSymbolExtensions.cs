@@ -29,27 +29,5 @@ namespace Refactorings
             bool signatureIsRequired = allBaseMethods.Any(bm => !bm.IsDeclaredInSource());
             return signatureIsRequired;
         }
-
-        public static bool IsExternallyVisible(this MethodSymbol methodSymbol)
-        {
-            if (methodSymbol.DeclaredAccessibility == Accessibility.Private ||
-                methodSymbol.DeclaredAccessibility == Accessibility.Internal)
-                return false;
-
-            if (methodSymbol.ContainingSymbol is MethodSymbol)
-                return false; // lambda (i think)
-
-           NamedTypeSymbol typeSymbol = methodSymbol.ContainingType;
-           while(typeSymbol != null)
-           {
-               if (typeSymbol.DeclaredAccessibility == Accessibility.Private ||
-                   typeSymbol.DeclaredAccessibility == Accessibility.Internal)
-                   return false;
-
-               typeSymbol = typeSymbol.ContainingType;
-           }
-
-           return true;
-        }
     }
 }

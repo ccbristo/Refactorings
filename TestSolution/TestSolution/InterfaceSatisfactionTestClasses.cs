@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,12 +33,25 @@ namespace TestSolution
         }
     }
 
-    public class FooCalled : IControlThisOne
+    class FooCalled : IControlThisOne
     {
         // this method is public, so it is assumed to be called from somewhere else
         public void Foo(int i)
         {
             int j = i + 5;
+        }
+    }
+
+    abstract class Alpha
+    {
+        internal abstract void Foo();
+    }
+
+    class Bravo : Alpha
+    {
+        internal override void Foo()
+        {
+            throw new NotImplementedException();
         }
     }
 }

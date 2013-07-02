@@ -46,6 +46,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -102,7 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MethodSymbolExtensions.cs" />
-    <Compile Include="MutatedValueTypeArgumentCodeIssueProvider.cs" />
+    <Compile Include="MutatedArgumentCodeIssueProvider.cs" />
     <Compile Include="ParameterSyntaxExtensions.cs" />
     <Compile Include="RemoveMethodCodeAction.cs" />
     <Compile Include="SymbolExtensions.cs" />

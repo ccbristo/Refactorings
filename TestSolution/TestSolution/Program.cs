@@ -27,6 +27,9 @@ namespace TestSolution
             i %= 3;
             i &= 3;
             i |= 3;
+            i >>= 3;
+            i ^= 3;
+            i <<= 3;
             i++;
             i--;
             ++i;
@@ -41,6 +44,9 @@ namespace TestSolution
             j %= 3;
             j &= 3;
             j |= 3;
+            j >>= 3;
+            j ^= 3;
+            j <<= 3;
             j++;
             j--;
             --j;

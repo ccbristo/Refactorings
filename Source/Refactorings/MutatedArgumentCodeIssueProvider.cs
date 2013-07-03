@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Roslyn.Compilers;
 using Roslyn.Compilers.Common;
@@ -52,7 +53,10 @@ namespace Refactorings
                 expressionStatement.Expression.Kind != SyntaxKind.SubtractAssignExpression &&
                 expressionStatement.Expression.Kind != SyntaxKind.ModuloAssignExpression &&
                 expressionStatement.Expression.Kind != SyntaxKind.AndAssignExpression &&
-                expressionStatement.Expression.Kind != SyntaxKind.OrAssignExpression)
+                expressionStatement.Expression.Kind != SyntaxKind.OrAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.ExclusiveOrAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.LeftShiftAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.RightShiftAssignExpression)
                 return null;
 
             var model = document.GetSemanticModel(cancellationToken);

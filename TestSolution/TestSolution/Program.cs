@@ -18,7 +18,33 @@ namespace TestSolution
 
         private static void MutateValue(int i)
         {
+            // all changes to i should cause errors
             i = 3;
+            i += 3;
+            i -= 3;
+            i *= 3;
+            i /= 3;
+            i %= 3;
+            i &= 3;
+            i |= 3;
+            i++;
+            i--;
+            ++i;
+            --i;
+
+            // all changes to j should be fine
+            int j = i;
+            j += 3;
+            j -= 3;
+            j *= 3;
+            j /= 3;
+            j %= 3;
+            j &= 3;
+            j |= 3;
+            j++;
+            j--;
+            --j;
+            ++j;
         }
 
         /// <summary>

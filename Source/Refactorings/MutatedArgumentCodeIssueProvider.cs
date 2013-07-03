@@ -45,7 +45,14 @@ namespace Refactorings
 
         private ISymbol GetMutatedSymbol(IDocument document, CancellationToken cancellationToken, ExpressionStatementSyntax expressionStatement)
         {
-            if (expressionStatement.Expression.Kind != SyntaxKind.AssignExpression)
+            if (expressionStatement.Expression.Kind != SyntaxKind.AssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.AddAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.DivideAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.MultiplyAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.SubtractAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.ModuloAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.AndAssignExpression &&
+                expressionStatement.Expression.Kind != SyntaxKind.OrAssignExpression)
                 return null;
 
             var model = document.GetSemanticModel(cancellationToken);

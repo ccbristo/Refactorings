@@ -22,6 +22,9 @@ namespace Refactorings
         {
             var model = document.GetSemanticModel(cancellationToken);
             var symbol = (MethodSymbol)model.GetDeclaredSymbol(node, cancellationToken);
+            
+            if (symbol.MethodKind == MethodKind.StaticConstructor)
+                yield break;
 
             var entryPoint = model.Compilation.GetEntryPoint(cancellationToken);
             if (symbol.Equals(entryPoint))

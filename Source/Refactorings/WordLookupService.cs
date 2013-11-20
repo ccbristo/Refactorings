@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
-using Lucene.Net.QueryParsers;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Version = Lucene.Net.Util.Version;
@@ -18,9 +18,10 @@ namespace Refactorings
 
         public void Initialize()
         {
-            using (var analyzer = new StandardAnalyzer(Version.LUCENE_30))
+            using (var analyzer = new StandardAnalyzer(Version.LUCENE_30, new HashSet<string>()))
             using (var writer = new IndexWriter(directory, analyzer, IndexWriter.MaxFieldLength.LIMITED))
-            using (var reader = File.OpenText(@"C:\Users\Chris\Desktop\US.dic"))
+            using(var wordStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Refactorings.words.txt"))
+            using (var reader = new StreamReader(wordStream))
             {
                 string word;
                 while ((word = reader.ReadLine()) != null)
@@ -29,6 +30,8 @@ namespace Refactorings
                     doc.Add(new Field("word", word, Field.Store.YES, Field.Index.ANALYZED));
                     writer.AddDocument(doc);
                 }
+
+                writer.Optimize();
             }
         }
 
@@ -36,10 +39,11 @@ namespace Refactorings
         {
             int hits_limit = 5;
 
-            using (var searcher = new IndexSearcher(directory, false))
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+
+            using (var searcher = new IndexSearcher(directory, true))
             using (var analyzer = new StandardAnalyzer(Version.LUCENE_30))
             {
-                var parser = new QueryParser(Version.LUCENE_30, "word", analyzer);
                 var query = new FuzzyQuery(new Term("word", searchQuery), 0.5f);
                 var docs = searcher.Search(query, null, hits_limit, Sort.RELEVANCE);
 
@@ -49,6 +53,9 @@ namespace Refactorings
                     yield return doc.Get("word");
                 }
             }
+
+            timer.Stop();
+            var elapsed = timer.Elapsed;
         }
 
         public bool SearchExact(string searchQuery)
@@ -58,7 +65,6 @@ namespace Refactorings
             using (var searcher = new IndexSearcher(directory, true))
             using (var analyzer = new StandardAnalyzer(Version.LUCENE_30))
             {
-                var parser = new QueryParser(Version.LUCENE_30, "word", analyzer);
                 var query = new TermQuery(new Term("word", searchQuery));
                 var hits = searcher.Search(query, hits_limit).ScoreDocs;
                 

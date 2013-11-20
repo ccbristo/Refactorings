@@ -29,17 +29,16 @@ namespace Refactorings
             yield break;
         }
 
-        static readonly Regex AlphaLongerThanTwoCharacters = new Regex(@"^\w{2,}$", RegexOptions.Compiled);
+        static readonly Regex AlphaLongerThanTwoCharacters = new Regex(@"^\p{L}{2,}$", RegexOptions.Compiled);
 
         public IEnumerable<CodeIssue> GetIssues(IDocument document, CommonSyntaxNode node, CancellationToken cancellationToken)
         {
-            VariableDeclaratorSyntax variableDeclarator;
+            VariableDeclaratorSyntax variableDeclarator; // includes fields
             BaseTypeDeclarationSyntax typeDeclaration;
             MethodDeclarationSyntax methodDeclaration;
             NamespaceDeclarationSyntax namespaceDeclaration;
             EnumMemberDeclarationSyntax enumMemberDeclaration;
             PropertyDeclarationSyntax propertyDeclaration;
-            //FieldDeclarationSyntax fieldDeclaration; // fields are handled by VariableDeclaratorSyntax
             EventDeclarationSyntax eventDeclaration;
             ParameterSyntax parameterSyntax;
             SyntaxToken[] identifiers;
@@ -89,8 +88,10 @@ namespace Refactorings
                             actions.Add(new FixSpellingCodeAction(document, node, identifier.ValueText, 
                                 identifier.ValueText.Replace(word, suggestion)));
                         }
-
-                        yield return new CodeIssue(CodeIssueKind.Warning, identifier.Span,
+                        
+                        var spanStart = identifier.Span.Start + identifier.ValueText.IndexOf(word, StringComparison.InvariantCultureIgnoreCase);
+                        var span = new TextSpan(spanStart, word.Length);
+                        yield return new CodeIssue(CodeIssueKind.Warning, span,
                                 string.Format("Possible mis-spelling: {0}", word), actions);
                     }
                 }
@@ -101,10 +102,9 @@ namespace Refactorings
         {
             get
             {
-                yield return typeof(VariableDeclaratorSyntax);
+                yield return typeof(VariableDeclaratorSyntax); // includes fields
                 yield return typeof(ParameterSyntax);
                 yield return typeof(PropertyDeclarationSyntax);
-                //yield return typeof(FieldDeclarationSyntax); // fields are handled by VariableDeclarator
                 yield return typeof(MethodDeclarationSyntax);
                 yield return typeof(EnumMemberDeclarationSyntax);
                 yield return typeof(NamespaceDeclarationSyntax);

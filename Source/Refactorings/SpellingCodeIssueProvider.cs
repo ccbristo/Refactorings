@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +18,20 @@ namespace Refactorings
     {
         static readonly WordLookupService WordLookupService = new WordLookupService();
 
+        private class SpellingIssue
+        {
+            public readonly TextSpan Span;
+            public readonly string Word;
+            public readonly IEnumerable<ICodeAction> Actions;
+
+            public SpellingIssue(TextSpan span, string word, IEnumerable<ICodeAction> actions)
+            {
+                this.Span = span;
+                this.Word = word;
+                this.Actions = actions;
+            }
+        }
+
         public SpellingCodeIssueProvider()
         {
             //WordLookupService service = new WordLookupService();
@@ -32,6 +46,58 @@ namespace Refactorings
         static readonly Regex AlphaLongerThanTwoCharacters = new Regex(@"^\p{L}{2,}$", RegexOptions.Compiled);
 
         public IEnumerable<CodeIssue> GetIssues(IDocument document, CommonSyntaxNode node, CancellationToken cancellationToken)
+        {
+            var identifiers = GetIdentifiers(node);
+
+            foreach (var identifier in identifiers)
+            {
+                var words = camelCaseSplit(identifier.ValueText)
+                            .Where(w => AlphaLongerThanTwoCharacters.IsMatch(w));
+
+                var allIssues = new ConcurrentBag<SpellingIssue>();
+                var result = Parallel.ForEach(words,
+                    () => (SpellingIssue)null,
+                    (word, state, dummy) => IdentifyIssues(word, document, identifier, node, state, dummy),
+                    issue => allIssues.Add(issue));
+
+                foreach (var spellingIssue in allIssues.Where(i => i != null))
+                {
+                    yield return new CodeIssue(CodeIssueKind.Warning, spellingIssue.Span,
+                                               string.Format("Possible mis-spelling: {0}", spellingIssue.Word),
+                                               spellingIssue.Actions);
+                }
+            }
+        }
+
+        private SpellingIssue IdentifyIssues(string word,
+            IDocument document,
+            SyntaxToken identifier,
+            CommonSyntaxNode node,
+            ParallelLoopState state,
+            SpellingIssue dummy)
+        {
+            bool found = WordLookupService.SearchExact(word.ToLower());
+            if (found)
+                return (SpellingIssue)null;
+
+            var suggestions = WordLookupService.Search(word.ToLower())
+                .Select(m => char.IsUpper(identifier.ValueText[0]) ? (char.ToUpper(m[0]) + m.Substring(1)) : m)
+                .ToList();
+
+            var actions = new List<ICodeAction>();
+
+            foreach (var suggestion in suggestions)
+            {
+                actions.Add(new FixSpellingCodeAction(document, node, identifier.ValueText,
+                    identifier.ValueText.Replace(word, suggestion)));
+            }
+
+            var spanStart = identifier.Span.Start + identifier.ValueText.IndexOf(word, StringComparison.InvariantCultureIgnoreCase);
+            var span = new TextSpan(spanStart, word.Length);
+            return new SpellingIssue(span, word, actions);
+        }
+
+        private static SyntaxToken[] GetIdentifiers(CommonSyntaxNode node)
         {
             VariableDeclaratorSyntax variableDeclarator; // includes fields
             BaseTypeDeclarationSyntax typeDeclaration;
@@ -64,38 +130,7 @@ namespace Refactorings
             {
                 throw new ArgumentException("Unhandled node.");
             }
-
-            foreach (var identifier in identifiers)
-            {
-                var words = camelCaseSplit(identifier.ValueText)
-                .Where(w => AlphaLongerThanTwoCharacters.IsMatch(w));
-
-                foreach (var word in words)
-                {
-                    if (WordLookupService.SearchExact(word.ToLower()))
-                        continue;
-
-                    var matches = WordLookupService.Search(word.ToLower())
-                        .Select(m => char.IsUpper(identifier.ValueText[0]) ? (char.ToUpper(m[0]) + m.Substring(1)) : m)
-                        .ToList();
-
-                    if (!matches.Contains(word, StringComparer.InvariantCultureIgnoreCase))
-                    {
-                        var actions = new List<ICodeAction>();
-
-                        foreach (var suggestion in matches)
-                        {
-                            actions.Add(new FixSpellingCodeAction(document, node, identifier.ValueText, 
-                                identifier.ValueText.Replace(word, suggestion)));
-                        }
-                        
-                        var spanStart = identifier.Span.Start + identifier.ValueText.IndexOf(word, StringComparison.InvariantCultureIgnoreCase);
-                        var span = new TextSpan(spanStart, word.Length);
-                        yield return new CodeIssue(CodeIssueKind.Warning, span,
-                                string.Format("Possible mis-spelling: {0}", word), actions);
-                    }
-                }
-            }
+            return identifiers;
         }
 
         public IEnumerable<Type> SyntaxNodeTypes
